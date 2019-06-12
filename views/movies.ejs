@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title><%= title %></title>
+		<link rel='stylesheet' href='/stylesheets/style.css' />
+		<link href="https://fonts.googleapis.com/css?family=Montserrat&display=swap" rel="stylesheet">
+	</head>
+	<body>
+		<nav class="navbar navbar-light bg-light fixed-top">
+			<a class="navbar-brand" href="/" style="margin: auto;font-variant: small-caps;font-family: auto;">
+				movies express
+			</a>
+		</nav>
+		<div class="container" style="margin-top: 100px">
+			<div class="row">
+				<% if(data.length){ %>
+					<% data.map(data=>{%>
+						<div class="col-md-4 col-sm-6 col-12 d-flex align-items-stretch">
+							<div class="card w-100 mb-3 border-light" style="box-shadow: 0px 2px 5px .4px rgba(0,0,0,.05), 0px 2px 2px .2px rgba(0,0,0,.1);">
+								<img src="<%= data.poster ? data.poster.replace('http','https') : `./images/not-found.svg` %>" alt="pexels" class="card-img-top" style="max-height: 200px">
+								<div class="card-body text-secondary">
+									<div class="card-title text-dark"><strong><%= data.title %></strong></div>
+									<h5 class="card-text" title="<%= data.plot %>" style="font-weight: 400;font-size: 16px;"><%= data.plot ? `${data.plot.substring(0,100)}...` : '...' %></h5>
+									<p class="card-text mt-3" style="font-family: monospace;"><b>Starring: </b><%= data.cast ? data.cast.join(', ') : `unknown` %></p>
+									<span class="badge <%= data.imdb.rating < 6 ? `badge-danger` : `badge-info` %>">imdb: <%= data.imdb ? `${data.imdb.rating}/10` : `unrated` %></span>
+									<span class="badge badge-dark"><%= data.genres.join(', ')  %></span>
+									<p class="card-text text-secondary mt-2"><small>Release date: <%= (new Date(data.released).toUTCString().substring(0,16)) %></small></p>
+								</div>
+							</div>
+						</div>
+					<% })%>
+				</div>
+				<div class="my-5">
+					<button class="d-block mx-auto btn btn-outline-primary" id="load-more" style="visibility: hidden;" onclick="load(<%= JSON.stringify(request) %>)">load more</button>
+				</div>
+				<% } else {%>
+					<div class="alert alert-danger alert-dismissible fade show mx-auto" role="alert">
+						<strong>No results!</strong> no results found for the given query <a href="/" class="alert-link">Go back</a>
+						<button type="button" class="close" data-dismiss="alert" aria-label="Close" onclick="location='/'">
+							<span aria-hidden="true">&times;</span>
+						</button>
+					</div>
+				<% }%>
+		</div>
+		<script>
+			let isProcessed = false
+			let elem = document.getElementById('load-more')
+			window.addEventListener('scroll',(e) => {
+				if (((window.innerHeight + document.documentElement.scrollTop)/document.documentElement.offsetHeight)*100 > 80 && !isProcessed) { isProcessed = !isProcessed; return;}
+				if(isProcessed) {
+					isProcessed = false
+					elem.click()
+				}
+			})
+			async function load(data){
+				data.page = ++data.page;
+				elem.disabled = true
+				elem.innerHTML = 'loading...'
+				await fetch('/movies', {
+					method: 'POST', 
+					credentials: 'same-origin',
+					headers: {
+						'Content-Type': 'application/json',
+					},
+					body: JSON.stringify(data)
+				}).then((res)=>res.json()).then(({data,request})=>{
+					if(!data){
+						elem.remove()
+						return 
+					}
+					let result = data
+					let node = document.querySelector('.row');
+					if(result.length){
+						result.forEach((data,index)=>{
+							node.innerHTML += `<div class="col-md-4 col-sm-6 col-12 d-flex align-items-stretch">
+								<div class="card w-100 mb-3 border-light" style="box-shadow: 0px 2px 5px .4px rgba(0,0,0,.05), 0px 2px 2px .2px rgba(0,0,0,.1);">
+									<img src="${data.poster ? data.poster.replace('http','https') : './images/not-found.svg'}" alt="pexels" class="card-img-top" style="max-height: 200px">
+									<div class="card-body text-secondary">
+										<div class="card-title text-dark"><strong>${data.title}</strong></div>
+										<h5 class="card-text" title="${data.plot}" style="font-weight: 400;font-size: 16px;">${data.plot ? data.plot.substring(0,100)+'...' : '...' }</h5>
+										<p class="card-text mt-3" style="font-family: monospace;"><b>Starring: </b><%= data.cast ? data.cast.join(', ') : `unknown` %></p>
+										<span class="badge ${data.imdb.rating < 6 ? 'badge-danger' : 'badge-info' }">imdb: ${ data.imdb ? data.imdb.rating+'/10' : 'unrated' }</span>
+										<span class="badge badge-dark">${ data.genres ? data.genres.join(', ') : 'Unknown' }</span>
+										<p class="card-text text-secondary mt-2"><small>Release date: ${ (new Date(data.released).toUTCString().substring(0,16)) }</small></p>
+									</div>
+								</div>
+							</div>`
+						})
+					}
+					elem.setAttribute('onClick', `load(${JSON.stringify(request)})`)
+					elem.disabled = false
+					elem.innerHTML = 'load-more'
+				})
+			}
+			// document.addEventListener('load',()=>{
+			// 	alert();
+			// 	let isProcessed = false;
+			// 	let requestData = <%= data.request %>
+			// 	requestData.page = ++requestData.page;
+			// 	window.addEventListener('scroll',()=>{
+			// 		if (window.innerHeight + document.documentElement.scrollTop !== document.documentElement.offsetHeight && !isProcessed){ isProcessed = !isProcessed; return;}
+			// 		if(isProcessed){
+			// 			isProcessed = false;
+						
+			// 		}
+			// 	})
+			// });
+		</script>
+  </body>
+</html>
