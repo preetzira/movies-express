@@ -17,19 +17,42 @@
 									<h5 class="card-text" title="<%= data.plot %>" style="font-weight: 400;font-size: 16px;"><%= data.plot ? `${data.plot.substring(0,100)}...` : '...' %></h5>
 									<p class="card-text mt-3" style="font-family: monospace;"><b>Starring: </b><%= data.cast ? data.cast.join(', ') : `unknown` %></p>
 									<span class="badge <%= data.imdb.rating < 6 ? `badge-danger` : `badge-info` %>">imdb: <%= data.imdb ? `${data.imdb.rating}/10` : `unrated` %></span>
-									<span class="badge badge-dark"><%= data.genres.join(', ')  %></span>
+									<span class="badge badge-dark"><%= data.genres ? data.genres.join(', ') : 'unknown' %></span>
 									<p class="card-text text-secondary mt-2"><small>Release date: <%= (new Date(data.released).toUTCString().substring(0,16)) %></small></p>
 								</div>
 							</div>
 						</div>
 					<% })%>
 				</div>
-				<div class="my-5">
-					<button class="d-block mx-auto btn btn-outline-primary" id="load-more" style="visibility: hidden;" onclick="load(<%= JSON.stringify(request) %>)">load more</button>
+				<div class="">
+					<form action="/movies" class="d-none" id="next-page">
+						<input type="hidden" name="query" value="<%= request.query %>">
+						<input type="hidden" name="search" value="<%= request.search %>">
+						<input type="hidden" name="page" value="<%= Number(request.page)+1 %>">
+					</form>
+					<form action="/movies" class="d-none" id="prev-page">
+						<input type="hidden" name="query" value="<%= request.query %>">
+						<input type="hidden" name="search" value="<%= request.search %>">
+						<input type="hidden" name="page" value="<%= request.page > 0 ? request.page-1 : 0 %>">
+					</form>
+				</div>
+				<div class="my-5 d-flex justify-content-center">
+					<div class="btn-group d-flex justify-content-center w-25">
+						<% if(request.page == 0){ %>
+							<button class="btn btn-outline-primary btn-lg" style="font-variant: small-caps;" id="prev" disabled onclick="{elem('#prev-page').submit();this.setAttribute('disabled',true)}"><small>Prev</small></button>
+						<% } else { %>
+							<button class="btn btn-outline-primary btn-lg" style="font-variant: small-caps;" id="prev" onclick="{elem('#prev-page').submit();this.setAttribute('disabled',true)}"><small>Prev</small></button>
+						<% } %>
+						<% if(data.length != 12){ %>
+							<button class="btn btn-outline-primary btn-lg" style="font-variant: small-caps;" id="next" disabled onclick="{elem('#next-page').submit();this.setAttribute('disabled',true)}"><small>Next</small></button>
+						<% } else { %>
+							<button class="btn btn-outline-primary btn-lg" style="font-variant: small-caps;" id="next" onclick="{elem('#next-page').submit();this.setAttribute('disabled',true)}"><small>Next</small></button>
+						<% } %>
+					</div>
 				</div>
 				<% } else {%>
 					<div class="alert alert-danger alert-dismissible fade show mx-auto" role="alert">
-						<strong>No results!</strong> no results found for the given query <a href="/" class="alert-link">Go back</a>
+						<strong>No results!</strong> found for the given query <a href="javascript:window.history.back()" class="alert-link">Go back</a>
 						<button type="button" class="close" data-dismiss="alert" aria-label="Close" onclick="location='/'">
 							<span aria-hidden="true">&times;</span>
 						</button>
@@ -37,66 +60,9 @@
 				<% }%>
 		</div>
 		<script>
-			let isProcessed = false
-			let elem = document.getElementById('load-more')
-			window.addEventListener('scroll',(e) => {
-				if (((window.innerHeight + document.documentElement.scrollTop)/document.documentElement.offsetHeight)*100 > 80 && !isProcessed) { isProcessed = !isProcessed; return;}
-				if(isProcessed) {
-					isProcessed = false
-					elem.click()
-					elem.disabled = true
-				}
-			})
-			async function load(data){
-				data.page = ++data.page;
-				await fetch('/movies', {
-					method: 'POST', 
-					credentials: 'same-origin',
-					headers: {
-						'Content-Type': 'application/json',
-					},
-					body: JSON.stringify(data)
-				}).then((res)=>res.json()).then(({data,request})=>{
-					if(!data){
-						elem.remove()
-						return 
-					}
-					let result = data
-					let node = document.querySelector('.row');
-					if(result.length){
-						result.forEach((data,index)=>{
-							node.innerHTML += `<div class="col-md-4 col-sm-6 col-12 d-flex align-items-stretch">
-								<div class="card w-100 mb-3 border-light" style="box-shadow: 0px 2px 5px .4px rgba(0,0,0,.05), 0px 2px 2px .2px rgba(0,0,0,.1);">
-									<img src="${data.poster ? data.poster.replace('http','https') : './images/not-found.svg'}" alt="pexels" class="card-img-top" style="max-height: 200px">
-									<div class="card-body text-secondary">
-										<div class="card-title text-dark"><strong>${data.title}</strong></div>
-										<h5 class="card-text" title="${data.plot}" style="font-weight: 400;font-size: 16px;">${data.plot ? data.plot.substring(0,100)+'...' : '...' }</h5>
-										<p class="card-text mt-3" style="font-family: monospace;"><b>Starring: </b><%= data.cast ? data.cast.join(', ') : `unknown` %></p>
-										<span class="badge ${data.imdb.rating < 6 ? 'badge-danger' : 'badge-info' }">imdb: ${ data.imdb ? data.imdb.rating+'/10' : 'unrated' }</span>
-										<span class="badge badge-dark">${ data.genres ? data.genres.join(', ') : 'Unknown' }</span>
-										<p class="card-text text-secondary mt-2"><small>Release date: ${ (new Date(data.released).toUTCString().substring(0,16)) }</small></p>
-									</div>
-								</div>
-							</div>`
-						})
-					}
-					elem.setAttribute('onClick', `load(${JSON.stringify(request)})`)
-					elem.disabled = false
-				})
+			let elem = function(id){
+				return document.querySelector(id);
 			}
-			// document.addEventListener('load',()=>{
-			// 	alert();
-			// 	let isProcessed = false;
-			// 	let requestData = <%= data.request %>
-			// 	requestData.page = ++requestData.page;
-			// 	window.addEventListener('scroll',()=>{
-			// 		if (window.innerHeight + document.documentElement.scrollTop !== document.documentElement.offsetHeight && !isProcessed){ isProcessed = !isProcessed; return;}
-			// 		if(isProcessed){
-			// 			isProcessed = false;
-						
-			// 		}
-			// 	})
-			// });
 		</script>
   </body>
 </html>
