@@ -15,7 +15,7 @@ router.post('/', async (req, res, next) => {
   	}
   	const responseData = {
   		data,
-  		title:req.body.query,
+  		title:`Movies Express - ${req.body.query}`,
   		request : req.body
   		}
   	res.render('movies',responseData);
