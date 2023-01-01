@@ -7,7 +7,7 @@
   },
   "Author":"Gurpreet Singh",
   "dependencies": {
-    "config": "^3.1.0",
+    "config": "^3.3.8",
     "cookie-parser": "~1.4.4",
     "debug": "~2.6.9",
     "ejs": "~2.6.1",
